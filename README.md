@@ -18,6 +18,8 @@ WHERE user_id = {{ user_id }}
 ```
 
 The data source receives `... WHERE user_id = 42 AND product IN ('Keyboard', 'Monitor')`, and the result lands in the cell's dataframe variable as usual.
+<img width="1380" height="734" alt="image" src="https://github.com/user-attachments/assets/aa2648ba-d44f-4663-9647-acd960985052" />
+
 
 ## Installation
 
