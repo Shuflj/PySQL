@@ -63,10 +63,6 @@ tasks.test {
     useJUnitPlatform()
 }
 
-tasks.runIde {
-    args(layout.projectDirectory.dir("demo").asFile.absolutePath)
-}
-
 val pycharmPluginsDir = providers.gradleProperty("pycharmPluginsDir")
     .orElse(System.getProperty("user.home") + "/Library/Application Support/JetBrains/PyCharm2026.2/plugins")
 

@@ -38,6 +38,7 @@ Nothing needs configuring. The plugin registers everything it needs: query rewri
 | `IN {{ ids }}` | list, tuple, set, NumPy array, pandas Series or Index | `IN (1, 2, 3)` |
 | `VALUES {{ rows }}` | `[("web", 1), ("ios", 2)]` | `VALUES ('web', 1), ('ios', 2)` |
 | `'%{{ name }}%'` | `"it's"` | `'%it''s%'` (escaped text, no extra quotes) |
+| `"{{ column }}"` | `"total sales"`, `'my "col"'` | `"total sales"`, `"my ""col"""` (escaped identifier, no extra quotes) |
 | `{{ table \| raw }}` | `"sales.orders"` | `sales.orders` (unescaped `str(value)`) |
 | `{{ cfg["start"] }}` | any Python expression | its value |
 

@@ -25,6 +25,7 @@ WHERE user_id = {{ user_id }}
       <li>A list, tuple, set, NumPy array or pandas Series becomes <code>(1, 2, 3)</code>, ready for <code>IN</code></li>
       <li>A list of tuples becomes rows, <code>('web', 1), ('ios', 2)</code>, ready for <code>VALUES</code></li>
       <li><code>'%{{ name }}%'</code> inside a string literal inserts the escaped text, without extra quotes</li>
+      <li><code>"{{ column }}"</code> inside a quoted identifier inserts the name with <code>"</code> escaped as <code>""</code></li>
       <li><code>{{ table | raw }}</code> inserts <code>str(value)</code> unchanged, for table or column names</li>
       <li>Any Python expression works, for example <code>{{ cfg["start"] }}</code> or <code>{{ ids[:10] }}</code></li>
     </ul>
