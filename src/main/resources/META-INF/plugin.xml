@@ -1,0 +1,96 @@
+<idea-plugin url="https://github.com/Shuflj/PySQL">
+  <id>io.github.shuflj.pysql</id>
+  <name>Jupyter SQL Cell Variables</name>
+  <vendor url="https://github.com/Shuflj">alekv</vendor>
+  <description><![CDATA[
+    <p>
+      Use Python variables in PyCharm's Jupyter SQL cells. Write <code>{{ name }}</code> in a SQL cell, and when
+      the cell runs, the value comes from the notebook's running kernel. The query still runs through PyCharm's own
+      SQL cell support, over the data source picked in the cell, so there is no separate connection to set up in code.
+    </p>
+
+    <p>Define values in a Python cell:</p>
+    <pre>user_id = 42
+products = ["Keyboard", "Monitor"]</pre>
+    <p>and use them in a SQL cell:</p>
+    <pre>SELECT * FROM orders
+WHERE user_id = {{ user_id }}
+  AND product IN {{ products }}</pre>
+    <p>The data source receives <code>WHERE user_id = 42 AND product IN ('Keyboard', 'Monitor')</code>.</p>
+
+    <h3>Syntax</h3>
+    <ul>
+      <li><code>{{ expr }}</code> becomes a SQL literal: <code>42</code>, <code>1.5</code>, <code>'O''Brien'</code>,
+        <code>NULL</code>, <code>TRUE</code>, or an ISO date such as <code>'2026-10-31'</code></li>
+      <li>A list, tuple, set, NumPy array or pandas Series becomes <code>(1, 2, 3)</code>, ready for <code>IN</code></li>
+      <li>A list of tuples becomes rows, <code>('web', 1), ('ios', 2)</code>, ready for <code>VALUES</code></li>
+      <li><code>'%{{ name }}%'</code> inside a string literal inserts the escaped text, without extra quotes</li>
+      <li><code>{{ table | raw }}</code> inserts <code>str(value)</code> unchanged, for table or column names</li>
+      <li>Any Python expression works, for example <code>{{ cfg["start"] }}</code> or <code>{{ ids[:10] }}</code></li>
+    </ul>
+
+    <h3>Features</h3>
+    <ul>
+      <li>Values are read when the cell runs, so <em>Run All</em> sees what the cells above just produced</li>
+      <li>The SQL editor accepts placeholders, with no syntax errors</li>
+      <li>A missing variable or an unsupported value shows a short error in the cell output, and the query is not sent</li>
+      <li>SQL cells without placeholders behave exactly as before</li>
+    </ul>
+
+    <h3>Requirements</h3>
+    <ul>
+      <li>PyCharm 2026.2 with Jupyter SQL cells (Database Tools and SQL enabled)</li>
+      <li>A Python notebook kernel</li>
+    </ul>
+
+    <h3>Good to know</h3>
+    <ul>
+      <li>Values are inserted as escaped SQL literals, not bound as driver parameters. <code>| raw</code> inserts text
+        unescaped, so use it only with values you trust.</li>
+      <li><code>{{name}}</code> is added to <em>Settings | Database | User Parameters</em>, so SQL consoles also treat it
+        as a parameter. You can turn it off there.</li>
+      <li>The plugin hooks into internal parts of PyCharm's SQL cell support, so each PyCharm release needs a matching
+        plugin build. If those internals change, SQL cells fall back to PyCharm's normal behaviour.</li>
+    </ul>
+
+    <p>
+      Addresses <a href="https://youtrack.jetbrains.com/issue/PY-92307">PY-92307</a>: Jupyter SQL cells should support
+      Python variables in the query text.
+    </p>
+  ]]></description>
+
+  <change-notes><![CDATA[
+    <h3>0.1.0</h3>
+    <ul>
+      <li>First release: <code>{{ expr }}</code> and <code>{{ expr | raw }}</code> placeholders in Jupyter SQL cells</li>
+      <li>Literal conversion for numbers, strings, booleans, None, dates, decimals, collections and rows</li>
+      <li>Placeholders are accepted by the SQL editor without syntax errors</li>
+      <li>Short error messages in the cell output when a placeholder can't be evaluated</li>
+    </ul>
+  ]]></change-notes>
+
+  <dependencies>
+    <plugin id="intellij.jupyter"/>
+    <plugin id="com.intellij.notebooks.core"/>
+    <plugin id="com.intellij.database"/>
+    <module name="intellij.database"/>
+    <module name="intellij.jupyter.core"/>
+    <module name="intellij.jupyter.psi"/>
+    <module name="intellij.notebooks.visualization"/>
+    <module name="intellij.dataspell.jupyter.sql.common"/>
+  </dependencies>
+
+  <extensions defaultExtensionNs="com.intellij.jupyter">
+    <core.jupyter.connections.execution.jupyterCellTaskBuilder
+      implementation="io.github.shuflj.pysql.TemplatedSqlTaskBuilder"
+      order="first"/>
+  </extensions>
+
+  <extensions defaultExtensionNs="com.intellij">
+    <highlightErrorFilter implementation="io.github.shuflj.pysql.PlaceholderErrorFilter"/>
+  </extensions>
+
+  <extensions defaultExtensionNs="com.intellij.database">
+    <parameterPatternProvider implementation="io.github.shuflj.pysql.PlaceholderPatternProvider"/>
+  </extensions>
+</idea-plugin>
