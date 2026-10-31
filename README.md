@@ -67,7 +67,3 @@ TemplatedSqlTask.doExecuteTask runs when the cell's turn comes, so Run All sees 
 In the editor, `PlaceholderPatternProvider` registers `{{ ... }}` as a Database Tools parameter, so the SQL parser accepts it. `PlaceholderErrorFilter` hides the parse errors left over in positions where SQL doesn't allow a single value, such as `VALUES {{ rows }}`.
 
 Values are inserted as escaped SQL literals, not bound as driver parameters, because PyCharm's SQL cell task takes query text. String escaping doubles single quotes. `| raw` skips escaping on purpose, so use it only with trusted values.
-
-## License
-
-[MIT](LICENSE) © 2026 Aleksander Vähk
