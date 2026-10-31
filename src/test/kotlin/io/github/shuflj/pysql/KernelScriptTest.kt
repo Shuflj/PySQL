@@ -13,11 +13,11 @@ class KernelScriptTest {
         runCatching { ProcessBuilder(exe, "--version").start().waitFor(10, TimeUnit.SECONDS) }.getOrDefault(false)
     }
 
-    private fun runInPython(setup: String, sql: String): Pair<Resolution, String> {
+    private fun runInPython(setup: String, sql: String, dialect: SqlDialect = SqlDialect.STANDARD): Pair<Resolution, String> {
         val exe = python()
         assumeTrue(exe != null, "no Python interpreter on PATH")
-        val template = SqlTemplate.parse(sql)
-        val code = setup.trimIndent() + "\n" + KernelScript.build(template.placeholders) +
+        val template = SqlTemplate.parse(sql, dialect)
+        val code = setup.trimIndent() + "\n" + KernelScript.build(template.placeholders, dialect) +
             "\nassert '_sqlcellvars_run' not in globals()\n"
         val process = ProcessBuilder(exe, "-I", "-c", code).redirectErrorStream(true).start()
         val output = process.inputStream.bufferedReader().readText()
@@ -63,6 +63,28 @@ class KernelScriptTest {
             "SELECT * FROM {{ table | raw }} WHERE note LIKE '%{{name}}%'",
         )
         assertEquals("SELECT * FROM sales.orders WHERE note LIKE '%it''s%'", sql)
+    }
+
+    @Test
+    fun `standard dialect keeps backslashes`() {
+        val (_, sql) = runInPython("v = 'a\\\\b'", "SELECT {{ v }}, '{{ v }}', \"{{ v }}\", `{{ v }}`, E'{{ v }}'")
+        assertEquals("SELECT 'a\\b', 'a\\b', \"a\\b\", `a\\b`, E'a\\\\b'", sql)
+    }
+
+    @Test
+    fun `backslash dialect doubles backslashes in every quoted context`() {
+        val (_, sql) = runInPython(
+            "v = \"\\\\' OR 1=1 -- \"",
+            "SELECT {{ v }}, '{{ v }}', \"{{ v }}\", `{{ v }}`",
+            SqlDialect.UNKNOWN,
+        )
+        assertEquals("SELECT '\\\\'' OR 1=1 -- ', '\\\\'' OR 1=1 -- ', \"\\\\' OR 1=1 -- \", `\\\\' OR 1=1 -- `", sql)
+    }
+
+    @Test
+    fun `bracket identifiers double the closing bracket`() {
+        val (_, sql) = runInPython("v = 'a]b'", "SELECT 1 AS [{{ v }}]", SqlDialect(backslashEscapes = false, bracketIdentifiers = true))
+        assertEquals("SELECT 1 AS [a]]b]", sql)
     }
 
     @Test

@@ -7,7 +7,7 @@ plugins {
 }
 
 group = "io.github.shuflj"
-version = "0.1.0"
+version = "0.1.1"
 
 repositories {
     mavenCentral()
@@ -24,6 +24,10 @@ dependencies {
     }
     testImplementation("org.junit.jupiter:junit-jupiter:5.13.4")
     testImplementation("junit:junit:4.13.2")
+    testImplementation("org.xerial:sqlite-jdbc:3.53.4.0")
+    testImplementation("org.duckdb:duckdb_jdbc:1.5.6.0")
+    testImplementation("org.postgresql:postgresql:42.7.13")
+    testImplementation("com.mysql:mysql-connector-j:26.7.0")
     testRuntimeOnly("org.junit.vintage:junit-vintage-engine:5.13.4")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.13.4")
 }

@@ -16,10 +16,18 @@ class TemplatedSqlTask(
     project: Project,
     override val cellPointer: NotebookIntervalPointer,
     private val template: SqlTemplate,
+    private val dialect: SqlDialect,
 ) : JupyterExecutionTask(file, project), JupyterCellTask {
 
     override suspend fun doExecuteTask(scope: CoroutineScope): JupyterTaskExecutorResult {
-        val lookup = JupyterKernelSilentTask(KernelScript.build(template.placeholders), notebookVirtualFile, project)
+        template.placeholders.firstOrNull { it.mode == RenderMode.UNSUPPORTED }?.let {
+            return showError(
+                scope,
+                "{{ ${it.expression} }} is inside a dollar-quoted or q-quoted string, where values can't be " +
+                    "escaped safely. Move it outside that string, or use {{ ${it.expression} | raw }} with a trusted value.",
+            )
+        }
+        val lookup = JupyterKernelSilentTask(KernelScript.build(template.placeholders, dialect), notebookVirtualFile, project)
         val lookupResult = lookup.doExecuteTask(scope)
         if (lookupResult is JupyterTaskExecutorResult.Aborted) return lookupResult
         val stdout = lookup.output.outputs

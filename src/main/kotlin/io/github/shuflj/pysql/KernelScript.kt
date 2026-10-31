@@ -10,9 +10,12 @@ sealed interface Resolution {
 object KernelScript {
     private const val MARKER = "__sqlcellvars__:"
 
-    fun build(placeholders: List<Placeholder>): String {
+    fun build(placeholders: List<Placeholder>, dialect: SqlDialect): String {
         val items = placeholders.joinToString(", ") { "(${b64Literal(it.expression)}, '${it.mode.name}')" }
-        return PYTHON_TEMPLATE.replace("__ITEMS__", items).replace("__MARKER__", MARKER)
+        return PYTHON_TEMPLATE
+            .replace("__ITEMS__", items)
+            .replace("__BACKSLASH__", if (dialect.backslashEscapes) "True" else "False")
+            .replace("__MARKER__", MARKER)
     }
 
     fun raiseError(message: String): String =
@@ -42,11 +45,16 @@ object KernelScript {
         "'" + Base64.getEncoder().encodeToString(text.toByteArray(Charsets.UTF_8)) + "'"
 
     private val PYTHON_TEMPLATE = """
-def _sqlcellvars_run(items):
+def _sqlcellvars_run(items, backslash):
     import base64, datetime, decimal
 
+    def escape(text, quote_char, double_backslash=backslash):
+        if double_backslash:
+            text = text.replace("\\", "\\\\")
+        return text.replace(quote_char, quote_char + quote_char)
+
     def quote(text):
-        return "'" + text.replace("'", "''") + "'"
+        return "'" + escape(text, "'") + "'"
 
     def scalar(v):
         if v is None:
@@ -85,8 +93,11 @@ def _sqlcellvars_run(items):
 
     render = {
         "LITERAL": literal,
-        "IN_STRING": lambda v: str(v).replace("'", "''"),
-        "IN_IDENTIFIER": lambda v: str(v).replace('"', '""'),
+        "IN_STRING": lambda v: escape(str(v), "'"),
+        "IN_ESCAPE_STRING": lambda v: escape(str(v), "'", True),
+        "IN_IDENTIFIER": lambda v: escape(str(v), '"'),
+        "IN_BACKTICK": lambda v: escape(str(v), "`"),
+        "IN_BRACKET": lambda v: str(v).replace("]", "]]"),
         "RAW": str,
     }
     for i, (expr, mode) in enumerate(items):
@@ -98,7 +109,7 @@ def _sqlcellvars_run(items):
         print("__MARKER__%d:%s:%s" % (i, status, base64.b64encode(text.encode("utf-8")).decode("ascii")))
 
 try:
-    _sqlcellvars_run([__ITEMS__])
+    _sqlcellvars_run([__ITEMS__], __BACKSLASH__)
 finally:
     del _sqlcellvars_run
 """.trimStart()

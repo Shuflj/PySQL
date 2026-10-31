@@ -25,7 +25,8 @@ WHERE user_id = {{ user_id }}
       <li>A list, tuple, set, NumPy array or pandas Series becomes <code>(1, 2, 3)</code>, ready for <code>IN</code></li>
       <li>A list of tuples becomes rows, <code>('web', 1), ('ios', 2)</code>, ready for <code>VALUES</code></li>
       <li><code>'%{{ name }}%'</code> inside a string literal inserts the escaped text, without extra quotes</li>
-      <li><code>"{{ column }}"</code> inside a quoted identifier inserts the name with <code>"</code> escaped as <code>""</code></li>
+      <li><code>"{{ column }}"</code> inside a quoted identifier inserts the name with <code>"</code> escaped as <code>""</code>;
+        <code>`{{ column }}`</code> and, for SQL Server and SQLite, <code>[{{ column }}]</code> work the same way</li>
       <li><code>{{ table | raw }}</code> inserts <code>str(value)</code> unchanged, for table or column names</li>
       <li>Any Python expression works, for example <code>{{ cfg["start"] }}</code> or <code>{{ ids[:10] }}</code></li>
     </ul>
@@ -46,8 +47,12 @@ WHERE user_id = {{ user_id }}
 
     <h3>Good to know</h3>
     <ul>
-      <li>Values are inserted as escaped SQL literals, not bound as driver parameters. <code>| raw</code> inserts text
-        unescaped, so use it only with values you trust.</li>
+      <li>Values are inserted as escaped SQL literals, not bound as driver parameters. Escaping follows the cell's
+        database: backslashes are escaped too for MySQL, MariaDB, ClickHouse, BigQuery, Spark, Snowflake, Redshift and
+        databases the plugin doesn't recognise. <code>| raw</code> inserts text unescaped, so use it only with values
+        you trust.</li>
+      <li>Placeholders inside dollar-quoted (<code>$$ ... $$</code>) or Oracle <code>q'[ ... ]'</code> strings are
+        refused, because values can't be escaped safely there.</li>
       <li><code>{{name}}</code> is added to <em>Settings | Database | User Parameters</em>, so SQL consoles also treat it
         as a parameter. You can turn it off there.</li>
       <li>The plugin hooks into internal parts of PyCharm's SQL cell support, so each PyCharm release needs a matching
@@ -61,6 +66,16 @@ WHERE user_id = {{ user_id }}
   ]]></description>
 
   <change-notes><![CDATA[
+    <h3>0.1.1</h3>
+    <ul>
+      <li>Security: values are now escaped for the cell's database. MySQL-family databases and others that treat
+        backslashes as escape characters no longer allow a value to break out of its string literal. Updating is
+        recommended.</li>
+      <li>Backtick identifiers, SQL Server and SQLite bracket identifiers, and PostgreSQL <code>E'...'</code> strings
+        are escaped correctly</li>
+      <li>Placeholders inside dollar-quoted or Oracle q-quoted strings show an error instead of running</li>
+      <li>The plugin is now listed for PyCharm only</li>
+    </ul>
     <h3>0.1.0</h3>
     <ul>
       <li>First release: <code>{{ expr }}</code> and <code>{{ expr | raw }}</code> placeholders in Jupyter SQL cells</li>
@@ -71,6 +86,7 @@ WHERE user_id = {{ user_id }}
   ]]></change-notes>
 
   <dependencies>
+    <plugin id="com.intellij.modules.pycharm"/>
     <plugin id="intellij.jupyter"/>
     <plugin id="com.intellij.notebooks.core"/>
     <plugin id="com.intellij.database"/>

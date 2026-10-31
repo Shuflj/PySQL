@@ -20,15 +20,15 @@ class TemplatedSqlTaskBuilder : JupyterCellTaskBuilder {
         val configuration: SqlCellConfiguration? = SqlCellConfiguration.getConfiguration(notebook)
         if (configuration?.isEnabled() != true) return null
 
-        val sql = readAction {
+        val (sql, dialect) = readAction {
             val interval = cellPointer.get() ?: return@readAction null
             val cellType = with(JupyterCellLinesProvider.Util) { interval.jupyterCellType }
             if (cellType != JupyterCellType.SQL) return@readAction null
-            interval.getContentText(notebookVirtualFile.file)
+            interval.getContentText(notebookVirtualFile.file) to Dialects.ofCell(project, notebook, interval.ordinal)
         } ?: return null
 
-        val template = SqlTemplate.parse(sql)
+        val template = SqlTemplate.parse(sql, dialect)
         if (template.placeholders.isEmpty() || !NativeSqlTasks.isAvailable()) return null
-        return TemplatedSqlTask(notebookVirtualFile, project, cellPointer, template)
+        return TemplatedSqlTask(notebookVirtualFile, project, cellPointer, template, dialect)
     }
 }
